@@ -1,0 +1,68 @@
+# Detekt static analysis configuration.
+# Uses buildUponDefaultConfig = true - only overrides from Detekt defaults are listed here.
+
+complexity:
+    CyclomaticComplexMethod:
+        # Allows for complex parsing/dispatch methods in utility and event processing code.
+        allowedComplexity: 18
+    ComplexCondition:
+        # Some OS detection and parser conditions naturally combine 4 boolean terms.
+        allowedConditions: 4
+    LargeClass:
+        # BaseConstraint accumulates all validation builder methods in one class.
+        allowedLines: 700
+    LongMethod:
+        # File parsers and event dispatchers have unavoidably long linear switch-like bodies.
+        allowedLines: 70
+    LongParameterList:
+        # Framework service constructors and methods use optional parameters with defaults heavily.
+        ignoreDefaultParameters: true
+    TooManyFunctions:
+        # BaseConstraint exposes a fluent builder API with many single-purpose methods.
+        allowedFunctionsPerFile: 30
+        allowedFunctionsPerClass: 35
+        allowedFunctionsPerInterface: 15
+        allowedFunctionsPerObject: 25
+        allowedFunctionsPerEnum: 15
+    NestedBlockDepth:
+        # Event service retry+error handling has inherent 6-level nesting.
+        allowedDepth: 6
+
+empty-blocks:
+    EmptyFunctionBlock:
+        # The framework defines open extension points as intentionally empty default implementations.
+        active: false
+
+exceptions:
+    TooGenericExceptionCaught:
+        # Exception is removed - framework boundary code deliberately catches it
+        # (encryption, reflection, event dispatch) and either wraps or recovers.
+        exceptionNames:
+            - 'ArrayIndexOutOfBoundsException'
+            - 'Error'
+            - 'IllegalMonitorStateException'
+            - 'IndexOutOfBoundsException'
+            - 'NullPointerException'
+            - 'StackOverflowError'
+            - 'Throwable'
+    TooGenericExceptionThrown:
+        # RuntimeException is removed - internal utility/security code wraps JVM exceptions
+        # at framework boundaries where no specific exception type is appropriate.
+        exceptionNames:
+            - 'Error'
+            - 'Exception'
+            - 'Throwable'
+
+style:
+    LoopWithTooManyJumpStatements:
+        # Parser guard-clause loops use multiple continues to skip comment/blank lines.
+        active: false
+    ProtectedMemberInFinalClass:
+        # Protected visibility is intentional - classes may be subclassed in application code.
+        active: false
+    SerialVersionUIDInSerializableClass:
+        # Kotlin serialization does not rely on Java's serialVersionUID mechanism.
+        active: false
+    UtilityClassWithPublicConstructor:
+        # Open utility classes are intentional - applications subclass them to extend functionality.
+        active: false

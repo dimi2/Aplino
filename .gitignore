@@ -1,0 +1,16 @@
+/.cache
+/.claude/settings.local.json
+/.config
+/.gradle
+/.idea
+/.jdks
+/build
+/internal
+/work/data/config/build.ini
+/work/data/log*
+/work/data/storage*
+/work/data/temp*
+/work/program/
+/work/proof/
+/work/temp/
+/CLAUDE.local.md
