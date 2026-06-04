@@ -43,6 +43,16 @@ internal class PropertiesFileParserTest : TestBase() {
     }
 
     @Test
+    fun multiLineValueKeepsCommentAndBlankLines() {
+        val testFile = "$tempDir/test4.res"
+        // Inside a multi-line value, '#' lines and blank lines are content, not comments/separators.
+        val s = "key = << END\nline1\n# not a comment\n\nline2\nEND"
+        writeFile(testFile, s)
+        val res = PropertiesFileParser().readFile(testFile)
+        assertEquals("line1\n# not a comment\n\nline2\n", res["key"])
+    }
+
+    @Test
     fun writeComment() {
         val testFile = "$tempDir/commented.properties"
         PropertiesFileWriter(testFile).use { writer ->

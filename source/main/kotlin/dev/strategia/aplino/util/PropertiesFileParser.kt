@@ -49,6 +49,7 @@ open class PropertiesFileParser {
      * @param res File data.
      * @return Map of resource keys and their values.
      */
+    @Suppress("CyclomaticComplexMethod")
     open fun readFile(res: InputStream): MutableMap<String, Any?> {
         val multiLineMarker = "<<"
         val ret = linkedMapOf<String, Any?>()
@@ -61,52 +62,15 @@ open class PropertiesFileParser {
             var line: String?
             var row = 0
             while (true) {
-                line = f.readLine()
-                if (line == null) {
-                    break
-                }
+                line = f.readLine() ?: break
                 row++
-                if (line.isBlank()) {
-                    // Empty line. Skip.
-                    continue
-                }
-                if (row == 1) {
-                    // Can have UTF-8 BOM signature.
-                    if (line[0] == '\ufeff') {
-                        // Strip it.
-                        line = line.substring(1)
-                    }
-                }
-                if (line[0] == '#') {
-                    // Comment line. Skip it.
-                    continue
+                if (row == 1 && line.isNotEmpty() && line[0] == '﻿') {
+                    // Can have UTF-8 BOM signature. Strip it.
+                    line = line.substring(1)
                 }
 
-                val key: String
-                var value: String?
-                if (!isMultiLineMode) {
-                    // Single line value.
-                    val idx = line.indexOf('=')
-                    if (idx == -1) {
-                        // No '=' char. Wrong input data.
-                        throw IllegalArgumentException("Resource file error at line $row")
-                    }
-                    key = line.take(idx).trim()
-                    value = line.substring(idx + 1).trim()
-                    if (value.startsWith(multiLineMarker)) {
-                        // Multi-line start.
-                        isMultiLineMode = true
-                        multiKey = key
-                        endMarker = value.substring(multiLineMarker.length).trim()
-                        continue
-                    }
-                    // Replace empty value with null.
-                    if (value.isEmpty()) {
-                        value = null
-                    }
-                    ret[key] = value
-                } else {
-                    // Multi-line value.
+                if (isMultiLineMode) {
+                    // Multi-line value. Blank and '#' lines are part of the value, do not skip them.
                     if (line.startsWith(endMarker!!)) {
                         // Multi-line end.
                         ret[multiKey!!] = buf.toString()
@@ -118,7 +82,35 @@ open class PropertiesFileParser {
                     // Collect multi-line content.
                     buf.append(line)
                     buf.append("\n")
+                    continue
                 }
+
+                if (line.isBlank()) {
+                    // Empty line. Skip.
+                    continue
+                }
+                if (line[0] == '#') {
+                    // Comment line. Skip it.
+                    continue
+                }
+
+                // Single line value.
+                val idx = line.indexOf('=')
+                if (idx == -1) {
+                    // No '=' char. Wrong input data.
+                    throw IllegalArgumentException("Resource file error at line $row")
+                }
+                val key = line.take(idx).trim()
+                val rawValue = line.substring(idx + 1).trim()
+                if (rawValue.startsWith(multiLineMarker)) {
+                    // Multi-line start.
+                    isMultiLineMode = true
+                    multiKey = key
+                    endMarker = rawValue.substring(multiLineMarker.length).trim()
+                    continue
+                }
+                // Replace empty value with null.
+                ret[key] = rawValue.ifEmpty { null }
             } //
             f.close()
         }
