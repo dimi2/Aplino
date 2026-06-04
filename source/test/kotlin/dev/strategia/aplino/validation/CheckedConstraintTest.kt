@@ -12,7 +12,7 @@ internal class CheckedConstraintTest : TestBase() {
     @Test
     fun typicalUse() {
         val context = ValidationContext()
-        val constraint = CheckedConstraint(true, ::customChecker1)
+        val constraint = CheckedConstraint(true, null, ::customChecker1)
 
         val value1 = constraint.accept("color", yellow, context)
         assertEquals(0, context.getErrorsCount())
@@ -26,12 +26,19 @@ internal class CheckedConstraintTest : TestBase() {
     @Test
     fun withConverter() {
         val context = ValidationContext()
-        val constraint = CheckedConstraint(true, ::customChecker2, ::customConverter)
+        val constraint = CheckedConstraint(true, ::customConverter, ::customChecker2)
 
         val value = constraint.accept("coordinates", "80 20", context) as PositivePoint
         assertEquals(0, context.getErrorsCount())
         assertEquals(80, value.x)
         assertEquals(20, value.y)
+    }
+
+    private fun customConverter(value: Any): Any {
+        val parts = value.toString().split(' ')
+        val vX = parts[0].toInt()
+        val vY = parts[1].toInt()
+        return PositivePoint(vX, vY)
     }
 
     private fun customChecker1(value: Any?): Boolean {
@@ -41,13 +48,6 @@ internal class CheckedConstraintTest : TestBase() {
     private fun customChecker2(value: Any?): Boolean {
         val obj = value as PositivePoint
         return (obj.x > 0 && obj.y > 0)
-    }
-
-    private fun customConverter(value: Any): Any {
-        val parts = value.toString().split(' ')
-        val vX = parts[0].toInt()
-        val vY = parts[1].toInt()
-        return PositivePoint(vX, vY)
     }
 
     private class PositivePoint(val x: Int, val y: Int)

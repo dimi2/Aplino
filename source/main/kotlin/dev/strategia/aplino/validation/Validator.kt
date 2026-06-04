@@ -99,7 +99,7 @@ open class Validator() {
                             property.setter.call(obj, fieldValue)
                         } catch (e: Exception) {
                             val message = "Cannot set ${obj::class.java}.${fieldName}" +
-                                " with value '$fieldValue' (${fieldName::class.java})"
+                                " with value '$fieldValue' (${fieldValue::class.java})"
                             throw IllegalArgumentException(message, e)
                         }
                     }

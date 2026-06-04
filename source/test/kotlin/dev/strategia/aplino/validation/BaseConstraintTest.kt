@@ -383,6 +383,15 @@ internal class BaseConstraintTest : TestBase() {
     }
 
     @Test
+    fun convertShortToLong() {
+        val context = ValidationContext()
+        val constraint = BaseConstraint(Long::class.java)
+        val result = constraint.accept("field", 1000.toShort(), context)
+        assertEquals(1000L, result)
+        assertEquals(0, context.getErrorsCount())
+    }
+
+    @Test
     fun convertToDouble() {
         val context = ValidationContext()
         val constraint = BaseConstraint(Double::class.java)

@@ -3,18 +3,20 @@ package dev.strategia.aplino.validation
 import dev.strategia.aplino.error.Errors
 
 /**
- * Validator for accepting/converting custom values. The checker function passed to the validator checks
- * if the value is valid and returns true/false. The converter function converts the checked value to class.
+ * Validator for accepting custom classes.
+ * The converter function converts the passed value to custom class.
+ * The checker function checks if the value is logically valid and returns true/false. There could be called
+ * specific checks, which require more complicated coding.
  */
 open class CheckedConstraint : Constraint {
     val checker: ValueChecker?
     val converter: ClassConverter?
     val mandatory: Boolean
 
-    constructor(isMandatory: Boolean, checker: ValueChecker? = null, classConverter: ClassConverter? = null) {
+    constructor(isMandatory: Boolean, converter: ClassConverter? = null, checker: ValueChecker? = null) {
+        this.converter = converter
         this.checker = checker
         mandatory = isMandatory
-        converter = classConverter
     }
 
     override fun accept(fieldName: String, value: Any?, context: ValidationContext): Any? {
@@ -63,11 +65,14 @@ open class CheckedConstraint : Constraint {
             converter?.invoke(value)
         }
         catch (_: Exception) {
-            // Do not return any result.
+            // Conversion failed. Do not return any result.
         }
         return converted
     }
 }
 
-typealias ValueChecker = (Any?) -> Boolean
+/** Converts a raw value to the target field class, or returns null if it cannot be converted. */
 typealias ClassConverter = (Any) -> Any?
+
+/** Checks whether a (possibly converted) value is valid. */
+typealias ValueChecker = (Any) -> Boolean

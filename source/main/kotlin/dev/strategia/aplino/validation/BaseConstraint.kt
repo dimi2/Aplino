@@ -609,7 +609,7 @@ open class BaseConstraint : Constraint {
                     }
                 }
                 Long::class.java -> {
-                    if (value is Short) {
+                    if (value is Long) {
                         ret = value
                     }
                     else {
