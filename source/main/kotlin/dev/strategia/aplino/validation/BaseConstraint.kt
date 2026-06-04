@@ -507,39 +507,41 @@ open class BaseConstraint : Constraint {
      */
     protected open fun compare(n1: Number, n2: Number): Int {
         val ret: Int
-        try {
-            when (n1) {
-                is Byte -> {
-                    ret = n1.compareTo(n2 as Byte)
-                }
-                is Short -> {
-                    ret = n1.compareTo(n2 as Short)
-                }
-                is Float -> {
-                    ret = n1.compareTo(n2 as Float)
-                }
-                is Int -> {
-                    ret = n1.compareTo(n2 as Int)
-                }
-                is Double -> {
-                    ret = n1.compareTo(n2 as Double)
-                }
-                is Long -> {
-                    ret = n1.compareTo(n2 as Long)
-                }
-                is BigInteger -> {
-                    ret = n1.compareTo(n2 as BigInteger)
-                }
-                is BigDecimal -> {
-                    ret = n1.compareTo(n2 as BigDecimal)
-                }
-                else ->
-                    throw IllegalArgumentException(
-                        "Unknown numeric class: ${n1::class.java.canonicalName}")
+        var a: Number = n1
+        var b: Number = n2
+        if (n1::class != n2::class) {
+            // If the two numbers are from different classes, normalize both to double.
+            a = n1.toDouble()
+            b = n2.toDouble()
+        }
+        when (a) {
+            is Byte -> {
+                ret = a.compareTo(b as Byte)
             }
-        } catch (e: ClassCastException) {
-            throw IllegalArgumentException("The constraint class (${n1::class.java}) does not math the "+
-                "constraint field class (${fieldClass})", e)
+            is Short -> {
+                ret = a.compareTo(b as Short)
+            }
+            is Float -> {
+                ret = a.compareTo(b as Float)
+            }
+            is Int -> {
+                ret = a.compareTo(b as Int)
+            }
+            is Double -> {
+                ret = a.compareTo(b as Double)
+            }
+            is Long -> {
+                ret = a.compareTo(b as Long)
+            }
+            is BigInteger -> {
+                ret = a.compareTo(b as BigInteger)
+            }
+            is BigDecimal -> {
+                ret = a.compareTo(b as BigDecimal)
+            }
+            else ->
+                throw IllegalArgumentException(
+                    "Unknown numeric class: ${a::class.java.canonicalName}")
         }
         return ret
     }

@@ -99,6 +99,15 @@ internal class BaseConstraintTest : TestBase() {
     }
 
     @Test
+    fun minClassMismatch() {
+        val context = ValidationContext()
+        val constraint = BaseConstraint(Double::class.java).min(0)
+        val result = constraint.accept("field", 1.0, context)
+        assertEquals(0, context.getErrorsCount())
+        assertEquals(1.0, result)
+    }
+
+    @Test
     fun maxLengthOnly() {
         val context = ValidationContext()
         val constraint = BaseConstraint(String::class.java).maxLength(5)
