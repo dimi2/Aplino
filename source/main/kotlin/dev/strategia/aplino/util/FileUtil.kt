@@ -223,7 +223,7 @@ open class FileUtil {
                         file.delete()
                     } //
                 }
-                val fList = File(directory.name).list()
+                val fList = directory.list()
                 if (fList != null) {
                     ret = fList.isEmpty()
                 }
