@@ -18,7 +18,6 @@ open class JvmDumper {
         private const val HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic"
         @Volatile
         private var hotSpotBean: HotSpotDiagnosticMXBean? = null
-        private val checkScheduler = Executors.newScheduledThreadPool(1)
 
         /**
          * Dump the JVM heap (memory) into a file.
@@ -54,14 +53,17 @@ open class JvmDumper {
          * @param fileName Output file name.
          */
         fun createDeadlocksDump(fileName: String) {
+            val executor = Executors.newSingleThreadExecutor()
             try {
                 FileWriter(fileName).use { dumpFile ->
                     // The check should be executed in separate thread.
-                    val dumpResult = checkScheduler.submit { dumpDeadlocks(dumpFile) }
+                    val dumpResult = executor.submit { dumpDeadlocks(dumpFile) }
                     dumpResult.get(2, TimeUnit.SECONDS)
                 }
             } catch (ex: Exception) {
                 throw RuntimeException(ex)
+            } finally {
+                executor.shutdownNow()
             }
         }
 
