@@ -270,33 +270,30 @@ open class OsUtil {
         }
 
         protected fun parseWindowsReleaseInfo(txt: String, osInfo: MutableMap<String, String>) {
+            val info = mutableMapOf<String, String>()
             txt.lines().forEach { line ->
-                val key: String
-                val value: String
                 val sep = line.indexOf('=')
                 if (sep != -1) {
-                    key = line.substring(0, sep)
-                    value = line.substring(sep + 1)
-                } else {
-                    key = line
-                    value = line
-                }
-                if (key.isNotEmpty()) {
-                    osInfo[key.uppercase()] = value
+                    val key = line.substring(0, sep).trim()
+                    val value = line.substring(sep + 1).trim()
+                    if (key.isNotEmpty()) {
+                        info[key.uppercase()] = value
+                    }
                 }
             }
 
-            // Normalize the info key names (not all distributions follow the key naming convention).
-            val osName = osInfo["Caption"]
+            // Normalize the info key names (the raw keys were stored upper-cased above).
+            val osName = info["CAPTION"]
             if (osName != null) {
                 osInfo[OS_NAME] = osName
-                //val v = Pattern.compile("(Microsoft Windows) (\\d+(.\\d+)?) ([ A-Za-z0-9]+)").matcher(osName)
             }
-            val osVersion = osInfo["Version"]
+            val osVersion = info["VERSION"]
             if (osVersion != null) {
                 osInfo[OS_VERSION] = osVersion
             }
-            osInfo[OS_FULL] = "$osName $osVersion"
+            if (osName != null || osVersion != null) {
+                osInfo[OS_FULL] = "$osName $osVersion"
+            }
         }
 
         protected fun parseLinuxGroupsAll(txt: String): List<String> {
@@ -335,15 +332,19 @@ open class OsUtil {
             val key2 = "Global Group memberships"
             txt.lines().forEach { line ->
                 if (line.startsWith(key1)) {
-                    val gList = line.substring(0, key1.length).trim().split("*")
+                    val gList = line.substring(key1.length).trim().split("*")
                     gList.forEach { g ->
-                        groups.add(g.trim())
+                        if (g.isNotBlank()) {
+                            groups.add(g.trim())
+                        }
                     }
                 }
                 if (line.startsWith(key2)) {
-                    val gList = line.substring(0, key2.length).trim().split("*")
+                    val gList = line.substring(key2.length).trim().split("*")
                     gList.forEach { g ->
-                        groups.add(g.trim())
+                        if (g.isNotBlank()) {
+                            groups.add(g.trim())
+                        }
                     }
                 }
             }
