@@ -56,12 +56,6 @@ internal class DataUtilTest : TestBase() {
     }
 
     @Test
-    fun encodeSql() {
-        val res = DataUtil.escapeSql("x\\y = 'z'").toString()
-        assertEquals("x\\\\y = ''z''", res)
-    }
-
-    @Test
     fun emptyStringConstant() {
         assertEquals("", DataUtil.EMPTY_STRING)
         assertTrue(DataUtil.EMPTY_STRING.isEmpty())

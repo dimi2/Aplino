@@ -69,36 +69,6 @@ open class DataUtil {
         }
 
         /**
-         * Escape special SQL characters to be safely used in SQL queries.
-         * @param str The string to be encoded.
-         * @return Encoded string.
-         */
-        fun escapeSql(str: CharSequence?): CharSequence? {
-            var result: CharSequence? = null
-            if (str != null) {
-                val len = str.length
-                val buf = StringBuilder(len)
-                var i = 0
-                while (i < len) {
-                    when (val ch = str[i]) {
-                        '\\' -> buf.append("\\\\")
-                        '\'' -> buf.append("\''")
-                        ';' -> buf.append("\\;")
-                        '#' -> buf.append("\\#")
-                        '-' -> if (i < str.length - 1 && str[i + 1] == '-') {
-                            buf.append("\\-\\-")
-                            i++
-                        }
-                        else -> buf.append(ch)
-                    }
-                    i++
-                } //
-                result = buf
-            }
-            return result
-        }
-
-        /**
          * Round specified float point number to desired precision.
          *
          * Example: for d = `17.4960` and precision = 2, the result will be `17.50`.
