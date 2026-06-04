@@ -5,6 +5,8 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
+private const val BITS_PER_BYTE = 8
+
 /**
  * Password encoder using [PBKDF2](https://en.wikipedia.org/wiki/PBKDF2) slow hash algorithm.
  */
@@ -21,7 +23,9 @@ open class Pbkdf2PasswordEncoder : AbstractPasswordEncoder {
             theSalt = ByteArray(params.slowSaltLength!!)
             randomGenerator.nextBytes(theSalt)
         }
-        val keySpec = PBEKeySpec(password, theSalt, params.iterations!!, params.slowHashLength!!)
+        // slowHashLength is expressed in bytes (as for the Argon2 encoder); PBEKeySpec expects bits.
+        val keySpec = PBEKeySpec(password, theSalt, params.iterations!!,
+            params.slowHashLength!! * BITS_PER_BYTE)
         // The default JDK secret key generation sporadically becomes very slow. This has something
         // common with the garbage collector. See:
         // https://bugs.openjdk.java.net/browse/JDK-8023983
