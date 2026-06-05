@@ -3,7 +3,6 @@ package dev.strategia.aplino.config
 import dev.strategia.aplino.error.DataStructureException
 import dev.strategia.aplino.log.LogService
 import dev.strategia.aplino.security.DataEncryptor
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.Key
 import java.util.Base64
@@ -24,10 +23,21 @@ import java.util.regex.Pattern
  * Note: the setting names must not contain characters, forbidden for environment name variables.
  */
 open class BaseConfigService : ConfigService {
+    companion object {
+        /** Maximum number of variable replacements per value, to guard against cyclic references. */
+        protected const val MAX_VARIABLE_REPLACEMENTS = 100
+    }
+
     var logService: LogService? = null
     val encryptor: DataEncryptor?
     var encryptedSuffix: String? = null
     var fileValuePrefix = "/run/secrets/"
+    /**
+     * Prefix for environment variables that configure the application. When set, environment variables
+     * whose name starts with this prefix override (and may add) configuration settings, with the prefix
+     * stripped from the name.
+     */
+    var envPrefix: String? = null
     protected val config = ConfigHolder()
     protected var configKey: Key? = null
     /** Variable search pattern.  */
@@ -77,16 +87,9 @@ open class BaseConfigService : ConfigService {
 
     override fun getValues(keyPattern: String?): Map<String, Any?> {
         val ret = TreeMap<String, Any?>()
+        val regex = keyPattern?.toRegex()
         for (key in config.settings.keys) {
-            var shouldAdd = false
-            if (keyPattern != null) {
-                if (key.matches(keyPattern.toRegex())) {
-                    shouldAdd = true
-                }
-            } else {
-                shouldAdd = true
-            }
-            if (shouldAdd) {
+            if (regex == null || key.matches(regex)) {
                 ret[key] = getSettingValue(key)
             }
         } //
@@ -126,16 +129,9 @@ open class BaseConfigService : ConfigService {
 
     override fun getSettingKeys(keyPattern: String?): Set<String> {
         val ret = LinkedHashSet<String>()
+        val regex = keyPattern?.toRegex()
         for (key in config.settings.keys) {
-            var shouldAdd = false
-            if (keyPattern != null) {
-                if (key.matches(keyPattern.toRegex())) {
-                    shouldAdd = true
-                }
-            } else {
-                shouldAdd = true
-            }
-            if (shouldAdd) {
+            if (regex == null || key.matches(regex)) {
                 ret.add(key)
             }
         } //
@@ -240,7 +236,7 @@ open class BaseConfigService : ConfigService {
                     }
                 }
                 catch (e: DataStructureException) {
-                    throw DataStructureException("Failed to encrypt config key: $key", e)
+                    throw DataStructureException("Failed to decrypt config key: $key", e)
                 }
             }
         }
@@ -254,37 +250,19 @@ open class BaseConfigService : ConfigService {
      */
     protected open fun processConfig(config: ConfigHolder) {
         val variables = collectVariables()
-
-        val checkBuf = ByteArrayOutputStream(8192)
-        val vSeparator = '*'.code
-        checkBuf.write(config.format.toString().toByteArray())
-        checkBuf.write(vSeparator)
-
         for (entry in config.settings.entries) {
             val setting = entry.value
             if (setting != null) {
-                checkBuf.write(entry.key.toByteArray())
-                checkBuf.write(vSeparator)
                 val value = setting.value ?: setting.defaultValue
-                if (value != null) {
-                    checkBuf.write(value.toString().toByteArray())
-                    if (value is String) {
-                        // Replace the variables in the config values.
-                        val newValue = replaceVariables(value, variables)
-                        if (newValue != value) {
-                            setting.originalValue = value
-                            setting.value = newValue
-                        }
+                if (value is String) {
+                    // Replace the variables in the config values.
+                    val newValue = replaceVariables(value, variables)
+                    if (newValue != value) {
+                        setting.originalValue = value
+                        setting.value = newValue
                     }
                 }
-                checkBuf.write(vSeparator)
-                val encryption = setting.encryption
-                if (encryption != null) {
-                    checkBuf.write(encryption.name.toByteArray())
-                }
-                checkBuf.write(vSeparator)
             }
-            checkBuf.write(vSeparator)
         } //
     }
 
@@ -298,10 +276,19 @@ open class BaseConfigService : ConfigService {
     protected open fun replaceVariables(value: String, variables: Map<String, Any?>): String? {
         val buf = StringBuffer(value)
         val m: Matcher = variablePattern.matcher(buf)
+        var replacements = 0
         while (m.find()) {
             val v = variables[m.group(1)]
             if (v != null) {
                 buf.replace(m.start(), m.end(), v.toString())
+                if (++replacements > MAX_VARIABLE_REPLACEMENTS) {
+                    // Guard against cyclic variable references, which would otherwise loop forever.
+                    val logger = logService?.getLogger(this)
+                    logger?.warn("Aborting variable replacement after {} substitutions; the value " +
+                        "likely contains a cyclic reference: {}", MAX_VARIABLE_REPLACEMENTS, value)
+                    break
+                }
+                // Re-scan from the start, so variables introduced by the replacement are also resolved.
                 m.reset()
             }
         } //
@@ -358,24 +345,42 @@ open class BaseConfigService : ConfigService {
     protected open fun mergeConfigKeys(conf: ConfigHolder, parameters: Map<String, String?>?) {
         // Merge with the environment parameters (which have priority).
         val envSettings = System.getenv()
-        val newSettings = mutableMapOf<String, ConfigSetting?>()
-        for (entry in conf.settings) {
-            val key = entry.key
-            if (envSettings.containsKey(key)) {
-                val setting = entry.value
-                val oldValue = setting?.value
-                val newValue = envSettings[key]
-                if (newValue != oldValue) {
-                    if (setting != null) {
-                        setting.value = newValue
-                    }
-                    else {
-                        newSettings[key] = ConfigSetting(newValue)
+        val prefix = envPrefix
+        if (prefix.isNullOrEmpty()) {
+            // No prefix configured: environment variables only override existing settings.
+            val newSettings = mutableMapOf<String, ConfigSetting?>()
+            for (entry in conf.settings) {
+                val key = entry.key
+                if (envSettings.containsKey(key)) {
+                    val setting = entry.value
+                    val newValue = envSettings[key]
+                    if (newValue != setting?.value) {
+                        if (setting != null) {
+                            setting.value = newValue
+                        }
+                        else {
+                            newSettings[key] = ConfigSetting(newValue)
+                        }
                     }
                 }
-            }
-        } //
-        conf.settings += newSettings
+            } //
+            conf.settings += newSettings
+        }
+        else {
+            // Prefixed environment variables override existing settings and may add new ones.
+            for ((envKey, envValue) in envSettings) {
+                if (envKey.startsWith(prefix) && envKey.length > prefix.length) {
+                    val key = envKey.substring(prefix.length)
+                    val setting = conf.settings[key]
+                    if (setting != null) {
+                        setting.value = envValue
+                    }
+                    else {
+                        conf.settings[key] = ConfigSetting(envValue)
+                    }
+                }
+            } //
+        }
 
         // Merge with the command line parameters (which have priority).
         if (!parameters.isNullOrEmpty()) {

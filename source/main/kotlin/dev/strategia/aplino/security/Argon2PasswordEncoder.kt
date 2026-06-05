@@ -13,11 +13,7 @@ open class Argon2PasswordEncoder : AbstractPasswordEncoder {
     constructor(hashParams: HashParams) : super(hashParams)
 
     override fun encode(password: CharArray, salt: ByteArray?): String {
-        var theSalt = salt
-        if (theSalt == null) {
-            theSalt = ByteArray(params.slowSaltLength!!)
-            randomGenerator.nextBytes(theSalt)
-        }
+        val theSalt = resolveSalt(salt)
         val passwordHash = ByteArray(params.slowHashLength!!)
         val bytesGenerator = crateBytesGenerator(params, theSalt)
         bytesGenerator.generateBytes(password, passwordHash, 0, params.slowHashLength!!)
@@ -30,6 +26,9 @@ open class Argon2PasswordEncoder : AbstractPasswordEncoder {
             .withVersion(Argon2Parameters.ARGON2_VERSION_13).withIterations(params.iterations!!)
             .withMemoryAsKB(params.memory!!).withParallelism(params.parallelism!!)
             .withSalt(salt)
+        // The optional seed acts as a secret (pepper). It is not stored with the hash, so the same value
+        // must be configured to verify the password later.
+        params.seed?.let { genParams.withSecret(it) }
         val generator = Argon2BytesGenerator()
         generator.init(genParams.build())
         return generator

@@ -22,7 +22,8 @@ abstract class BaseException : RuntimeException {
         onInstanceCreation(exception)
     }
 
-    constructor(errorInfo: ErrorInfo, exception: Throwable?) : super(errorInfo.details, exception) {
+    constructor(errorInfo: ErrorInfo, exception: Throwable?) : super(errorInfo.formattedDetails(),
+                exception) {
         this.errorInfo = errorInfo
     }
 
@@ -46,26 +47,26 @@ abstract class BaseException : RuntimeException {
         val bugHuntingInstruction = System.getProperty(BUG_HUNTING_INSTRUCTION)
         if (bugHuntingInstruction != null) {
             val instr = bugHuntingInstruction.split(":")
+            val classSpec = instr.getOrElse(0) { "" }
             val cClass = cause?.javaClass ?: javaClass
-            if (instr[0] == "*" || cClass.canonicalName == instr[0]) {
-                val df = SimpleDateFormat("yyyy-MM-ddThh:mm:ss")
-                // Generate thread dump?
-                val threadDumpFile: String
-                if (instr[0].isNotEmpty()) {
-                    if ("*".endsWith(instr[1])) {
-                        threadDumpFile = "threadDump_" + df.format(Date()) + ".txt"
-                    } else {
-                        threadDumpFile = instr[1]
-                    }
-                    JvmDumper.createThreadDump(threadDumpFile)
+            if (classSpec == "*" || cClass.canonicalName == classSpec) {
+                // ':' is illegal in file names on some platforms, so keep the timestamp file-name safe.
+                val df = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss")
+                // Generate thread dump (default name when unspecified or '*').
+                val threadDumpSpec = instr.getOrElse(1) { "" }
+                val threadDumpFile = if (threadDumpSpec.isEmpty() || threadDumpSpec == "*") {
+                    "threadDump_" + df.format(Date()) + ".txt"
+                } else {
+                    threadDumpSpec
                 }
-                // Generate heap dump?
-                if (instr[2].isNotEmpty()) {
-                    val heapDumpFile: String
-                    if ("*".endsWith(instr[2])) {
-                        heapDumpFile = "heapDump_" + df.format(Date()) + ".hprof"
+                JvmDumper.createThreadDump(threadDumpFile)
+                // Generate heap dump only if requested.
+                val heapDumpSpec = instr.getOrElse(2) { "" }
+                if (heapDumpSpec.isNotEmpty()) {
+                    val heapDumpFile = if (heapDumpSpec == "*") {
+                        "heapDump_" + df.format(Date()) + ".hprof"
                     } else {
-                        heapDumpFile = instr[2]
+                        heapDumpSpec
                     }
                     JvmDumper.createHeapDump(heapDumpFile, true)
                 }

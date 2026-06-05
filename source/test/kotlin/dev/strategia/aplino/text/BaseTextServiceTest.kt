@@ -45,6 +45,24 @@ internal class BaseTextServiceTest : TestBase() {
     }
 
     @Test
+    fun localeFallbackToParent() {
+        writeFile(messagesDir.absolutePath + "/messages_de.res", "key = valueDe")
+        val service = createTextService()
+        // 'de_DE' has no resources, so it falls back to the parent locale 'de'.
+        val res = service.getTextEntry("key", "de_DE")
+        assertEquals("valueDe", res.text)
+    }
+
+    @Test
+    fun localeFallbackToDefault() {
+        writeFile(messagesDir.absolutePath + "/messages_en.res", "key = valueEn")
+        val service = createTextService()
+        // 'fr' has no resources, so it falls back to the default locale 'en'.
+        val res = service.getTextEntry("key", "fr")
+        assertEquals("valueEn", res.text)
+    }
+
+    @Test
     fun missingKey() {
         val service = createTextService()
         val res = service.getText("missingKey", Locale.ENGLISH.language)

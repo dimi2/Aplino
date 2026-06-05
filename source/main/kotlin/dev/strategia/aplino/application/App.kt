@@ -122,7 +122,7 @@ class App {
          */
         fun throwError(origin: Any, errorCode: String, details: String, exception: Throwable? = null,
                        context: Map<String, Any?>? = null, vararg detailsParams: Serializable?) {
-            errorService.throwError(origin, errorCode, details, exception, context, detailsParams)
+            errorService.throwError(origin, errorCode, details, exception, context, *detailsParams)
         }
 
         /**
@@ -145,7 +145,10 @@ class App {
             if (obj is Callable<*>) {
                 // Delayed value retrieval (on demand).
                 obj = obj.call()
-                registry[key] = obj
+                if (obj != null) {
+                    // Cache the loaded value for next time.
+                    registry[key] = obj
+                }
             }
             else if (obj is Supplier<*>) {
                 // The value is generated on demand.

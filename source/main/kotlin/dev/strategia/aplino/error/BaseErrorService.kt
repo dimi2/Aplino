@@ -33,7 +33,7 @@ open class BaseErrorService : ErrorService {
         }
         error.details = details
         if (detailsParams.isNotEmpty()) {
-            error.detailsParams = arrayOf(detailsParams)
+            error.detailsParams = arrayOf(*detailsParams)
         }
         error.context = context
         error.origin = origin

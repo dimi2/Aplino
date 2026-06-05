@@ -192,18 +192,23 @@ open class FileUtil {
          * @return True if the directory is deleted successfully.
          */
         fun deleteDirectory(dir: File): Boolean {
+            var deleted = true
             if (dir.isDirectory) {
                 val subDirs = dir.listFiles()
                 if (subDirs != null) {
                     for (subDir in subDirs) {
                         if (!deleteDirectory(subDir)) {
-                            // Was not able to delete a subdirectory.
-                            return false
+                            // Was not able to delete a subdirectory. Do not attempt to delete the parent.
+                            deleted = false
+                            break
                         }
                     } //
                 }
             }
-            return dir.delete()
+            if (deleted) {
+                deleted = dir.delete()
+            }
+            return deleted
         }
 
         /**

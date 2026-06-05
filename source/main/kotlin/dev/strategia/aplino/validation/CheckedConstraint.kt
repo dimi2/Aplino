@@ -22,18 +22,17 @@ open class CheckedConstraint : Constraint {
     override fun accept(fieldName: String, value: Any?, context: ValidationContext): Any? {
         var converted: Any? = null
         if (value != null) {
-            var v = value
+            // Convert the value to the target class (when a converter is configured).
+            var v: Any? = value
             if (converter != null) {
-                // Convert the value to the target class.
                 v = convertToClass(value)
-                if (v == null) {
-                    context.addError(ValidationErrors.createError(Errors.FIELD_WRONG_SYNTAX,
-                        fieldName, fieldName))
-                    return null
-                }
             }
-
-            if (checker != null) {
+            if (v == null) {
+                // Conversion failed.
+                context.addError(ValidationErrors.createError(Errors.FIELD_WRONG_SYNTAX,
+                    fieldName, fieldName))
+            }
+            else if (checker != null) {
                 // Check the (eventually converted) value.
                 if (checker.invoke(v)) {
                     converted = v

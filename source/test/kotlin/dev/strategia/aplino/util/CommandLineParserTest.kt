@@ -38,6 +38,20 @@ internal class CommandLineParserTest : TestBase() {
     }
 
     @Test
+    fun doubleQuotedValue() {
+        val args = arrayOf("-name", "\"John Doe\"")
+        val cmd = CommandLineParser(args)
+        assertEquals("John Doe", cmd.getArgumentValue("name"))
+    }
+
+    @Test
+    fun singleQuotedValue() {
+        val args = arrayOf("-name", "'Jane Roe'")
+        val cmd = CommandLineParser(args)
+        assertEquals("Jane Roe", cmd.getArgumentValue("name"))
+    }
+
+    @Test
     fun multipleValues() {
         val args = arrayOf("-a", "1", "b", "c")
         val cmd = CommandLineParser(args)

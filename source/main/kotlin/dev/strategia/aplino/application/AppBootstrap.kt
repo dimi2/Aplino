@@ -37,7 +37,6 @@ open class AppBootstrap {
     protected var configName = "data/config/config.ini"
     protected var buildConfigName = "data/config/build.ini"
     protected var logConfigName = "data/config/logging.properties"
-    protected var tempDirName = "data/temp"
     protected var configPrefix = ""
 
     /** Application start parameters (usually from command line). */
@@ -133,28 +132,6 @@ open class AppBootstrap {
         }
 
         return homeDir
-    }
-
-    /**
-     * Set up the directory for storing temporary files (it should be writeable).
-     * @param tempDirectory Requested temporary directory. If not specified, assume the default.
-     * @return The temporary directory.
-     */
-    protected open fun setupTempDirectory(tempDirectory: String? = null): File {
-        val path = tempDirectory ?: tempDirName
-        val f = File(path)
-        var tempDir = if (f.isAbsolute) f else File(detectHomeDirectory(), path)
-        if (!tempDir.isDirectory) {
-            // Try to create the temporary directory if it does not exist.
-            tempDir.mkdirs()
-        }
-        if (!tempDir.isDirectory || !tempDir.canWrite()) {
-            // Try with the JVM temp directory.
-            val subDir = File(App.home()).name
-            tempDir = File(System.getProperty("java.io.tmpdir"), subDir)
-            tempDir.mkdirs()
-        }
-        return tempDir
     }
 
     /**

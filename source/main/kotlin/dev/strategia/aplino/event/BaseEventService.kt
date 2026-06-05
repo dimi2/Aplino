@@ -135,7 +135,13 @@ open class BaseEventService : EventService {
                             if (retryStrategy == null) {
                                 retryStrategy = errorResponse.retryStrategy
                             }
-                            if (retryStrategy != null) {
+                            if (retryStrategy == null) {
+                                // Retry requested but no retry strategy provided - the retries cannot be
+                                // bounded, so log the error and continue instead of looping forever.
+                                logger?.error("Retry requested without a retry strategy for event:" +
+                                    " [$event] in " + listener.javaClass + ". Skipping the listener.", exc)
+                            }
+                            else {
                                 // Mark retry attempt.
                                 retryStrategy.markAttempt()
                                 if (retryStrategy.getCurrentAttempt() >= retryStrategy.getMaxAttempts()) {
@@ -146,12 +152,12 @@ open class BaseEventService : EventService {
                                 // Wait some time before the retry.
                                 val delay = retryStrategy.getDelayToNextAttempt()
                                 Thread.sleep(delay)
+                                // Increase the log level before retrying.
+                                retries = 1
+                                logMod.increaseLogLevels(exc)
+                                // Reiterate event processing with same listener.
+                                i--
                             }
-                            // Increase the log level before retrying.
-                            retries = 1
-                            logMod.increaseLogLevels(exc)
-                            // Reiterate event processing with same listener.
-                            i--
                         }
                         ErrorPolicy.Ignore -> {
                             // Ignore the error.

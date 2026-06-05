@@ -30,6 +30,25 @@ internal class BaseErrorServiceTest : TestBase() {
     }
 
     @Test
+    fun errorDetailsAreSubstituted() {
+        val errorDetails = "Cannot read file '%s'. Check the name and the file permissions"
+        val provider = MapErrorInfoProvider()
+        provider.errors[CANNOT_READ_FILE] = ErrorInfo(CANNOT_READ_FILE, errorDetails)
+        val errorService = createService(provider)
+        try {
+            errorService.throwError(this, CANNOT_READ_FILE, errorDetails, null, null, "file1.txt")
+            fail()
+        } catch (expected: Exception) {
+            val exception = expected as ApplicationException
+            // The exception message has the parameters substituted in.
+            assertEquals("Cannot read file 'file1.txt'. Check the name and the file permissions",
+                exception.message)
+            // The stored details template is left unchanged.
+            assertEquals(errorDetails, exception.errorInfo?.details)
+        }
+    }
+
+    @Test
     fun applicationException() {
         val ex = ApplicationException("runtime error")
         assertEquals("runtime error", ex.message)

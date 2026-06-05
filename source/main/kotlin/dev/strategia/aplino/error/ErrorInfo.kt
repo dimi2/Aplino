@@ -1,6 +1,7 @@
 package dev.strategia.aplino.error
 
 import java.io.Serializable
+import java.util.IllegalFormatException
 
 /**
  * Holder for descriptive error information. It contains:
@@ -36,7 +37,28 @@ open class ErrorInfo: Serializable, Cloneable {
         if ((code == null) && (details == null)) {
             throw IllegalArgumentException("Missing mandatory parameter")
         }
-        this.detailsParams = arrayOf(detailsParams)
+        this.detailsParams = arrayOf(*detailsParams)
+    }
+
+    /**
+     * Get the error details with the parameter placeholders filled in. The [details] template uses
+     * [String.format] style placeholders (like `%s`). If the template has no placeholders (or they do
+     * not match the parameters), the raw template is returned unchanged.
+     * @return The formatted details text, or null if no details are set.
+     */
+    open fun formattedDetails(): String? {
+        val template = details
+        val params = detailsParams
+        var result = template
+        if (template != null && !params.isNullOrEmpty()) {
+            try {
+                result = String.format(template, *params)
+            } catch (_: IllegalFormatException) {
+                // The template has no (or invalid) placeholders for the given parameters. Keep it as is.
+                result = template
+            }
+        }
+        return result
     }
 
     /**

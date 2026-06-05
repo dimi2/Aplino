@@ -489,7 +489,8 @@ open class BaseConstraint : Constraint {
      * @param min Minimum allowed time boundary, or null if unbounded.
      * @param max Maximum allowed time boundary, or null if unbounded.
      */
-    protected fun addTimeRangeError(context: ValidationContext, fieldName: String, value: Any?, min: Any?, max: Any?) {
+    protected fun addTimeRangeError(context: ValidationContext, fieldName: String, value: Any?,
+                                    min: Any?, max: Any?) {
         val sMin = String.format("%s", min)
         val sMax = String.format("%s", max)
         context.addError(createError(Errors.FIELD_WRONG_TIME, fieldName, value,
@@ -658,8 +659,10 @@ open class BaseConstraint : Constraint {
                         ret = value
                     }
                     else {
-                        val parsed = tFormatter.parseBest(value.toString(), OffsetDateTime::from, ZonedDateTime::from)
-                        ret = if (parsed is ZonedDateTime) parsed.toOffsetDateTime() else parsed as? OffsetDateTime
+                        val parsed = tFormatter.parseBest(value.toString(),
+                            OffsetDateTime::from, ZonedDateTime::from)
+                        ret = if (parsed is ZonedDateTime) parsed.toOffsetDateTime()
+                            else parsed as? OffsetDateTime
                     }
                 }
                 BigInteger::class.java -> {

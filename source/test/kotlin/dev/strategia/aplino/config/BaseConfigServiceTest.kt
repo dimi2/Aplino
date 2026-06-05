@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
+import java.util.concurrent.TimeUnit
 
 internal class BaseConfigServiceTest : TestBase() {
     companion object {
@@ -102,6 +104,15 @@ internal class BaseConfigServiceTest : TestBase() {
         assertEquals(value, none)
     }
 
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    fun cyclicVariableReferenceDoesNotHang() {
+        // A self-referencing variable must not cause an infinite replacement loop.
+        val service = ExposedConfigService()
+        val result = service.replaceVariables("\${a}", mapOf("a" to "\${a}"))
+        assertNotNull(result)
+    }
+
     private fun createConfigService(settings: Map<String, ConfigSetting?>): BaseConfigService {
         val configFile = workDir.absolutePath + "/testing/config/config1.conf"
         val service = BaseConfigService(workDir.path, configFile, null, BaseDataEncryptor())
@@ -109,5 +120,10 @@ internal class BaseConfigServiceTest : TestBase() {
         service.setEncryptionKey("key1")
         service.start()
         return service
+    }
+
+    private class ExposedConfigService : BaseConfigService("", null, null, null) {
+        public override fun replaceVariables(value: String, variables: Map<String, Any?>): String? =
+            super.replaceVariables(value, variables)
     }
 }

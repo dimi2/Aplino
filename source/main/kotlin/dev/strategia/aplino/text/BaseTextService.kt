@@ -77,18 +77,35 @@ open class BaseTextService: TextService {
      * the configured 'unknownPrefix' value).
      */
     protected open fun getEntry(key: String, locale: String): TextEntry {
-        var ret: TextEntry? = null
-        val localeEntries = textCache[locale]
-        if (localeEntries != null) {
-            ret = localeEntries[key]
+        var ret = lookupEntry(key, locale)
+        if (ret == null) {
+            // Fall back to the parent locale (e.g. 'en_us' -> 'en'), then to the default locale.
+            val parent = getParentLocale(locale)
+            if (parent != locale) {
+                ret = lookupEntry(key, parent)
+            }
+            if (ret == null && defaultLocale != locale && defaultLocale != parent) {
+                ret = lookupEntry(key, defaultLocale)
+            }
+            // Cache the resolved text (or an 'unknown' placeholder) under the requested locale,
+            // to shorten subsequent requests.
+            val resolved = ret?.text ?: (unknownPrefix + key)
+            ret = createEntry(locale, key, resolved)
         }
+        return ret
+    }
+
+    /**
+     * Look up a text entry for the given key and locale, checking the cache first, then the provider.
+     * @param key Desired entry key.
+     * @param locale Desired locale.
+     * @return Corresponding text entry, or null if it does not exist for this locale.
+     */
+    protected open fun lookupEntry(key: String, locale: String): TextEntry? {
+        val localeEntries = textCache[locale]
+        var ret = localeEntries?.get(key)
         if (ret == null) {
             ret = textProvider!!.getTextEntry(key, locale)
-            if (ret == null) {
-                // No such text. Create entry (text=key) to shorten subsequent requests.
-                val unknownValue = unknownPrefix + key
-                ret = createEntry(locale, key, unknownValue)
-            }
         }
         return ret
     }

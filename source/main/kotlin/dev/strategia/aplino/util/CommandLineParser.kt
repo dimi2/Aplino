@@ -83,57 +83,56 @@ open class CommandLineParser {
      */
     open fun parseArguments(args: Array<String>?): MutableMap<String, String?> {
         val opt = mutableMapOf<String, String?>()
-        if (args.isNullOrEmpty()) {
-            // No parameters passed.
-            return opt
-        }
+        if (!args.isNullOrEmpty()) {
+            var i = 0
+            while (i < args.size) {
+                val s = args[i]
+                if (s.isBlank()) {
+                    // Invalid argument. Skip it.
+                    i++
+                    continue
+                }
 
-        var i = 0
-        while (i < args.size) {
-            val s = args[i]
-            if (s.isBlank()) {
-                // Invalid argument. Skip it.
-                i++
-                continue
-            }
+                var sOption: String? = null
+                var sValue: String? = null
+                if (s.startsWith(argPrefix)) {
+                    // Argument.
+                    sOption = s.substring(argPrefix.length)
+                    if (args.size - i > 1) {
+                        // Argument value.
+                        val ss = args[i + 1]
+                        if (!ss.startsWith(argPrefix)) {
+                            sValue = ss
+                            i++
+                        }
+                    }
+                } else {
+                    // Value.
+                    sValue = s
+                }
 
-            var sOption: String? = null
-            var sValue: String? = null
-            if (s.startsWith(argPrefix)) {
-                // Argument.
-                sOption = s.substring(argPrefix.length)
-                if (args.size - i > 1) {
-                    // Argument value.
-                    val ss = args[i + 1]
-                    if (!ss.startsWith(argPrefix)) {
-                        sValue = ss
-                        i++
+                // Remove value enclosing quotas (if any) - either single or double quotes.
+                val dQuota = "\""
+                val sQuota = "'"
+                val v = sValue
+                if (v != null && v.length >= 2) {
+                    val isDoubleQuoted = v.startsWith(dQuota) && v.endsWith(dQuota)
+                    val isSingleQuoted = v.startsWith(sQuota) && v.endsWith(sQuota)
+                    if (isDoubleQuoted || isSingleQuoted) {
+                        sValue = v.substring(1, v.length - 1)
                     }
                 }
-            } else {
-                // Value.
-                sValue = s
-            }
 
-            // Remove value enclosing quotas (if any).
-            val dQuota = "\""
-            val sQuota = "'"
-            if (sValue != null && sValue.startsWith(sQuota)) {
-                if (sValue.startsWith(dQuota) && sValue.endsWith(dQuota) || sValue.startsWith(sQuota)
-                    && sValue.endsWith(sQuota)) {
-                    sValue = sValue.substring(1, sValue.length - 1)
+                // Add to parameter map.
+                if (sOption != null) {
+                    opt[sOption] = sValue
                 }
-            }
-
-            // Add to parameter map.
-            if (sOption != null) {
-                opt[sOption] = sValue
-            }
-            if (sValue != null) {
-                parsedValues.add(sValue)
-            }
-            i++
-        } //
+                if (sValue != null) {
+                    parsedValues.add(sValue)
+                }
+                i++
+            } //
+        }
 
         return opt
     }

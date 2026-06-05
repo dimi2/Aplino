@@ -21,10 +21,10 @@ open class AdvancedDataEncryptor : BaseDataEncryptor {
         return Argon2PasswordEncoder(params)
     }
 
-    override fun createCipher(key: Key, mode: Int, params: EncryptionParams): Cipher {
+    override fun createCipher(key: Key, mode: Int, params: EncryptionParams, iv: ByteArray): Cipher {
         val cipher: Cipher = Cipher.getInstance(params.cipherName)
         try {
-            cipher.init(mode, key, IvParameterSpec(params.seed))
+            cipher.init(mode, key, IvParameterSpec(iv))
         } catch (e: Exception) {
             throw RuntimeException("Cipher creation error.", e)
         }
